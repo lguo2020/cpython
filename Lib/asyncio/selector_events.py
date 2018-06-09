@@ -149,20 +149,22 @@ class BaseSelectorEventLoop(base_events.BaseEventLoop):
 
     def _start_serving(self, protocol_factory, sock,
                        sslcontext=None, server=None, backlog=100,
-                       ssl_handshake_timeout=constants.SSL_HANDSHAKE_TIMEOUT):
+                       ssl_handshake_timeout=constants.SSL_HANDSHAKE_TIMEOUT,
+                       max_accept=100):
         self._add_reader(sock.fileno(), self._accept_connection,
                          protocol_factory, sock, sslcontext, server, backlog,
-                         ssl_handshake_timeout)
+                         ssl_handshake_timeout, max_accept)
 
     def _accept_connection(
             self, protocol_factory, sock,
             sslcontext=None, server=None, backlog=100,
-            ssl_handshake_timeout=constants.SSL_HANDSHAKE_TIMEOUT):
+            ssl_handshake_timeout=constants.SSL_HANDSHAKE_TIMEOUT,
+            max_accept=100):
         # This method is only called once for each event loop tick where the
         # listening socket has triggered an EVENT_READ. There may be multiple
         # connections waiting for an .accept() so it is called in a loop.
         # See https://bugs.python.org/issue27906 for more details.
-        for _ in range(backlog):
+        for _ in range(max_accept):
             try:
                 conn, addr = sock.accept()
                 if self._debug:

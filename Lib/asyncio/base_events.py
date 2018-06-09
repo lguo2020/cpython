@@ -228,7 +228,7 @@ class _SendfileFallbackProtocol(protocols.Protocol):
 class Server(events.AbstractServer):
 
     def __init__(self, loop, sockets, protocol_factory, ssl_context, backlog,
-                 ssl_handshake_timeout):
+                 ssl_handshake_timeout, max_accept=None):
         self._loop = loop
         self._sockets = sockets
         self._active_count = 0
@@ -239,6 +239,7 @@ class Server(events.AbstractServer):
         self._ssl_handshake_timeout = ssl_handshake_timeout
         self._serving = False
         self._serving_forever_fut = None
+        self._max_accept = max_accept or backlog
 
     def __repr__(self):
         return f'<{self.__class__.__name__} sockets={self.sockets!r}>'
@@ -268,7 +269,8 @@ class Server(events.AbstractServer):
             sock.listen(self._backlog)
             self._loop._start_serving(
                 self._protocol_factory, sock, self._ssl_context,
-                self, self._backlog, self._ssl_handshake_timeout)
+                self, self._backlog, self._ssl_handshake_timeout,
+                self._max_accept)
 
     def get_loop(self):
         return self._loop
@@ -1281,7 +1283,8 @@ class BaseEventLoop(events.AbstractEventLoop):
             reuse_address=None,
             reuse_port=None,
             ssl_handshake_timeout=None,
-            start_serving=True):
+            start_serving=True,
+            max_accept=None):
         """Create a TCP server.
 
         The host parameter can be a string, in that case the TCP server is
@@ -1375,7 +1378,8 @@ class BaseEventLoop(events.AbstractEventLoop):
             sock.setblocking(False)
 
         server = Server(self, sockets, protocol_factory,
-                        ssl, backlog, ssl_handshake_timeout)
+                        ssl, backlog, ssl_handshake_timeout,
+                        max_accept=max_accept)
         if start_serving:
             server._start_serving()
             # Skip one loop iteration so that all 'loop.add_reader'
